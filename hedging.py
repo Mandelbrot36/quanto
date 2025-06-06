@@ -68,12 +68,17 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
 
     if n_hedge > steps: raise ValueError('Paths should be longer')
 
-    hedge_frequency = steps / n_hedge
+    hedge_frequency = steps // n_hedge + 1 if steps % n_hedge != 0 else steps / n_hedge
     hedge_frequency = max(1, hedge_frequency)
     hedge_indices = np.arange(0, steps, hedge_frequency)
 
 
+    print(f'Liczba hedgy: {n_hedge}')
+    print(f'steps: {steps}')
+    print(f'hedge frequency: {hedge_frequency}')
+    print(f'hedge_indices')
     print(hedge_indices)
+    print('stop')
 
     # Inicjalizacja output
     gold_position = np.zeros((N, steps))
@@ -163,7 +168,8 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
     cash_position[:, -1] = cash_position[:, -2] * np.exp(params['r'] * dt)
     gold_position[:, -1] = gold_position[:, -2]
     usd_position[:, -1] = usd_position[:, -2]
-    usd_value[:, -1] = (usd_value[:, -2] * np.exp(params['r_f'] * dt) - usd_value[:, -2]) + usd_position[:, -1] * usdpln_T
+    #usd_value[:, -1] = (usd_value[:, -2] * np.exp(params['r_f'] * dt) - usd_value[:, -2]) + usd_position[:, -1] * usdpln_T
+    usd_value[:, -1] = usd_position[:, -1] * usdpln_T
     portfolio_value[:, -1] = gold_position[:, -1] * gold_T * usdpln_T + usd_value[:, -1] + cash_position[:, -1] - option_value[:, -1]
     portfolio_delta[:, -1] = 0
 
