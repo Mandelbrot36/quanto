@@ -73,12 +73,12 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
     hedge_indices = np.arange(0, steps, hedge_frequency)
 
 
-    print(f'Liczba hedgy: {n_hedge}')
+    '''print(f'Liczba hedgy: {n_hedge}')
     print(f'steps: {steps}')
     print(f'hedge frequency: {hedge_frequency}')
     print(f'hedge_indices')
     print(hedge_indices)
-    print('stop')
+    print('stop')'''
 
     # Inicjalizacja output
     gold_position = np.zeros((N, steps))
@@ -109,9 +109,9 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
     # Początkowy skład portfela
     gold_position[:, 0] = delta
     usd_position[:, 0] = -gold_0 * gold_position[:, 0]
-    usd_value[:, 0] = usd_position[:, 0] * usdpln_0
-    cash_position[:, 0] = (option_value[:, 0] - gold_position[:, 0] * gold_0 * usdpln_0 - usd_value[:, 0])
-    portfolio_value[:, 0] = -option_value[:, 0] + gold_position[:, 0] * gold_0 * usdpln_0 + usd_value[:, 0] + cash_position[:, 0]
+    #usd_value[:, 0] = usd_position[:, 0] * usdpln_0
+    cash_position[:, 0] = (option_value[:, 0] - gold_position[:, 0] * gold_0 * usdpln_0 - usd_position[:, 0] * usdpln_0)
+    portfolio_value[:, 0] = -option_value[:, 0] + gold_position[:, 0] * gold_0 * usdpln_0 + usd_position[:, 0] * usdpln_0 + cash_position[:, 0]
     portfolio_delta[:, 0] = -delta + gold_position[:, 0] + usd_position[:, 0]
 
     for i in range(1, steps - 1):
@@ -128,7 +128,8 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
                                           D=D)  # Aktualizacja wartości opcji
 
         cash_position[:, i] = cash_position[:, i - 1] * np.exp(params['r'] * dt)  # Aktualizacja wartości gotówki (uwzględniamy oprocentowanie)
-        usd_value[:, i] = usd_value[:, i - 1] * np.exp(params['r_f'] * dt)  # Aktualizacja wartości dolara (oprocentowanie ze stopą zagraniczną)
+        #usd_value[:, i] = usd_value[:, i - 1] * np.exp(params['r_f'] * dt)  # Aktualizacja wartości dolara (oprocentowanie ze stopą zagraniczną)
+
         new_delta_1 = option_delta(gold_current,
                                    usdpln_current,
                                    K,
@@ -144,13 +145,13 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
             gold_position[:, i] = new_delta_1
             usd_position[:, i] = new_delta_2
             cash_position[:, i] -= ((gold_position[:, i] - (gold_position[:, i - 1])) * gold_current * usdpln_current +
-                                    (usd_position[:, i] * usdpln_current - usd_value[:, i]))
-            usd_value[:, i] = usd_position[:, i] * usdpln_current
+                                    (usd_position[:, i] - usd_position[:, i-1] * np.exp(params['r_f'] * dt)) * usdpln_current)
+            #usd_value[:, i] = usd_position[:, i] * usdpln_current
         else:
             gold_position[:, i] = gold_position[:, i - 1]
-            usd_position[:, i] = usd_position[:, i - 1]
+            usd_position[:, i] = usd_position[:, i - 1] * np.exp(params['r_f'] * dt)
 
-        portfolio_value[:, i] = gold_position[:, i] * gold_current * usdpln_current + usd_value[:, i] + cash_position[:, i]
+        portfolio_value[:, i] = gold_position[:, i] * gold_current * usdpln_current + usd_position[:, i] * usdpln_current + cash_position[:, i]
         portfolio_delta[:, i] = -new_delta_1 + gold_position[:, i] + usd_position[:, i]
 
     # Moment wykonania opcji T = T_years
@@ -167,10 +168,9 @@ def wallet_delta(gold_paths, usdpln_paths, T_years, params, K, option_type='call
 
     cash_position[:, -1] = cash_position[:, -2] * np.exp(params['r'] * dt)
     gold_position[:, -1] = gold_position[:, -2]
-    usd_position[:, -1] = usd_position[:, -2]
-    #usd_value[:, -1] = (usd_value[:, -2] * np.exp(params['r_f'] * dt) - usd_value[:, -2]) + usd_position[:, -1] * usdpln_T
-    usd_value[:, -1] = usd_position[:, -1] * usdpln_T
-    portfolio_value[:, -1] = gold_position[:, -1] * gold_T * usdpln_T + usd_value[:, -1] + cash_position[:, -1] - option_value[:, -1]
+    usd_position[:, -1] = usd_position[:, -2] * np.exp(params['r_f'] * dt)
+    #usd_value[:, -1] = usd_position[:, -1] * np.exp(params['r_f'] * dt) * usdpln_T
+    portfolio_value[:, -1] = gold_position[:, -1] * gold_T * usdpln_T + usd_position[:, -1] * usdpln_T + cash_position[:, -1] - option_value[:, -1]
     portfolio_delta[:, -1] = 0
 
     portfolio_composition = {

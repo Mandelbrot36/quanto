@@ -146,34 +146,38 @@ def generate_correlated_gbm_paths(N, T, s0_vec, mean_vec, vol_vec, corr_matrix, 
     return paths, time
 
 
-# Funkcja pomocnicza do testowania i wizualizacji
-def test_gbm_implementation():
-    """Testuje implementację z przykładowymi danymi"""
+def test_gbm_properties(paths, time, mean_vec, vol_vec, s0_vec):
+    """
+    Testuje właściwości statystyczne wygenerowanych ścieżek GBM.
+    """
+    results = {}
+    dt = time[1] - time[0]
 
-    # Parametry testowe
-    N = 1000          # Liczba symulacji
-    T = 1.0           # 1 rok
-    s0_vec = [100, 50] # Ceny początkowe
-    mu_vec = [0.05, 0.08]  # 5% i 8% rocznego zwrotu
-    sigma_vec = [0.2, 0.3]  # 20% i 30% rocznej zmienności
-    corr_matrix = np.array([[1.0, 0.5], [0.5, 1.0]])  # Korelacja 0.5
+    for i, asset_key in enumerate(paths.keys()):
+        prices = paths[asset_key]
 
-    # Generowanie ścieżek
-    paths, time = generate_correlated_gbm_paths(N, T, s0_vec, mu_vec, sigma_vec, corr_matrix)
+        # Oblicz logarytmiczne stopy zwrotu
+        log_returns = np.diff(np.log(prices), axis=1)
 
-    # Sprawdzenie podstawowych statystyk
-    final_prices_0 = paths['asset_0'][:, -1]
-    final_prices_1 = paths['asset_1'][:, -1]
+        # Teoretyczne wartości
+        theoretical_mean = (mean_vec[i] - 0.5 * vol_vec[i]**2) * dt
+        theoretical_std = vol_vec[i] * np.sqrt(dt)
 
-    print("Wyniki testowe:")
-    print(f"Aktywo 0 - średnia cena końcowa: {np.mean(final_prices_0):.2f} (oczekiwana: ~{s0_vec[0] * np.exp(mu_vec[0] * T):.2f})")
-    print(f"Aktywo 1 - średnia cena końcowa: {np.mean(final_prices_1):.2f} (oczekiwana: ~{s0_vec[1] * np.exp(mu_vec[1] * T):.2f})")
+        # Empiryczne wartości
+        empirical_mean = np.mean(log_returns)
+        empirical_std = np.std(log_returns, ddof=1)
 
-    # Korelacja zwrotów
-    returns_0 = (final_prices_0 - s0_vec[0]) / s0_vec[0]
-    returns_1 = (final_prices_1 - s0_vec[1]) / s0_vec[1]
-    empirical_corr = np.corrcoef(returns_0, returns_1)[0, 1]
-    print(f"Empiryczna korelacja zwrotów: {empirical_corr:.3f} (oczekiwana: ~{corr_matrix[0,1]:.3f})")
+        results[asset_key] = {
+            'theoretical_mean': theoretical_mean,
+            'empirical_mean': empirical_mean,
+            'theoretical_std': theoretical_std,
+            'empirical_std': empirical_std,
+            'mean_error': abs(empirical_mean - theoretical_mean),
+            'std_error': abs(empirical_std - theoretical_std)
+        }
+
+    return print(results)
+
 
 def validate_paths_correlation(paths_dict, expected_corr_matrix, time_window=None):
     """
