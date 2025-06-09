@@ -261,11 +261,11 @@ def wallet_delta2(gold_paths, usdpln_paths, T_years, params, K, option_type='cal
                                       K,
                                       t_to_maturity, params['r'],
                                       sigma_y,
-                                      gold_0,
+                                      params['gold']['s0'],
                                       'call',
                                       D=D)
 
-    delta = option_delta(gold_0/usdpln_0, usdpln_0, K, t_to_maturity, params['r'], sigma_y, gold_0,
+    delta = option_delta(gold_0/usdpln_0, usdpln_0, K, t_to_maturity, params['r'], sigma_y, params['gold']['s0'],
                          option_type, D)
 
     # Początkowy skład portfela
@@ -285,7 +285,7 @@ def wallet_delta2(gold_paths, usdpln_paths, T_years, params, K, option_type='cal
                                           K,
                                           t_to_maturity, params['r'],
                                           sigma_y,
-                                          gold_0,
+                                          params['gold']['s0'],
                                           'call',
                                           D=D)  # Aktualizacja wartości opcji
 
@@ -298,7 +298,7 @@ def wallet_delta2(gold_paths, usdpln_paths, T_years, params, K, option_type='cal
                                    t_to_maturity,
                                    params['r'],
                                    sigma_y,
-                                   gold_0, option_type, D)
+                                   params['gold']['s0'], option_type, D)
 
         new_delta_2 = (-gold_current / usdpln_current) * new_delta_1
 
@@ -324,7 +324,7 @@ def wallet_delta2(gold_paths, usdpln_paths, T_years, params, K, option_type='cal
                                        K,
                                        0, params['r'],
                                        sigma_y,
-                                       gold_0,
+                                       params['gold']['s0'],
                                        'call',
                                        D=D)
 
